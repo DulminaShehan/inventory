@@ -7,6 +7,7 @@ import Navbar    from './components/Navbar';
 import Login     from './pages/Login';
 import Register  from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import Brands    from './pages/Brands';
 import Products  from './pages/Products';
 import Sales     from './pages/Sales';
 import Billing   from './pages/Billing';
@@ -36,6 +37,9 @@ const App = () => (
         } />
         <Route path="/products" element={
           <PrivateRoute><AppLayout><Products /></AppLayout></PrivateRoute>
+        } />
+        <Route path="/brands" element={
+          <PrivateRoute><AppLayout><Brands /></AppLayout></PrivateRoute>
         } />
         <Route path="/sales" element={
           <PrivateRoute><AppLayout><Sales /></AppLayout></PrivateRoute>

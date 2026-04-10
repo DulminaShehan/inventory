@@ -15,6 +15,7 @@ const cors         = require('cors');
 const userRoutes    = require('./routes/userRoutes');
 const productRoutes = require('./routes/productRoutes');
 const saleRoutes    = require('./routes/saleRoutes');
+const brandRoutes   = require('./routes/brandRoutes');
 
 // Initialise the DB pool (side-effect: logs connection status on startup)
 require('./config/db');
@@ -35,6 +36,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/users',    userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/sales',    saleRoutes);
+app.use('/api/brands',   brandRoutes);
 
 // Health-check endpoint (useful for load balancers / Docker health checks)
 app.get('/health', (_req, res) =>

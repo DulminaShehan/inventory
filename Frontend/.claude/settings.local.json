@@ -20,7 +20,12 @@
       "Bash(npx create-react-app:*)",
       "Bash(cp -r d:/inventory/frontend-app/. d:/inventory/Frontend/)",
       "Bash(rm -rf d:/inventory/frontend-app)",
-      "Bash(echo \"Frontend PID: $!\")"
+      "Bash(echo \"Frontend PID: $!\")",
+      "Bash(mysql -u root -pdula1790@ hardware_store)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(mysql -u root -pdula1790@ -e \"USE hardware_store; SELECT b.name, b.discount, COUNT\\(p.id\\) AS products FROM brands b LEFT JOIN products p ON p.brand_id=b.id GROUP BY b.id;\")",
+      "Bash(curl -s \"http://localhost:5000/api/brands\" -H \"Authorization: Bearer $\\(curl -s -X POST http://localhost:5000/api/users/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"admin123\"}')",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f'  {b[\\\\\"name\\\\\"]:15} {b[\\\\\"discount\\\\\"]}% OFF  \\({b[\\\\\"product_count\\\\\"]} products\\)'\\) for b in d['brands']]\")"
     ],
     "additionalDirectories": [
       "d:\\inventory\\Backend"

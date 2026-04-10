@@ -1,9 +1,6 @@
 const ProductModel = require('../models/productModel');
 
-// ─────────────────────────────────────────────────
-// GET /api/products
-// Query params: search, page, limit
-// ─────────────────────────────────────────────────
+// GET /api/products?search=&page=&limit=
 const getAllProducts = async (req, res) => {
   try {
     const search = (req.query.search || '').trim();
@@ -16,49 +13,30 @@ const getAllProducts = async (req, res) => {
       ProductModel.count({ search }),
     ]);
 
-    res.json({
-      success:     true,
-      total,
-      page,
-      totalPages:  Math.ceil(total / limit),
-      count:       products.length,
-      products,
-    });
+    res.json({ success: true, total, page, totalPages: Math.ceil(total / limit), count: products.length, products });
   } catch (err) {
     console.error('[productController.getAllProducts]', err);
     res.status(500).json({ success: false, message: 'Failed to fetch products.' });
   }
 };
 
-// ─────────────────────────────────────────────────
-// GET /api/products/low-stock
-// ─────────────────────────────────────────────────
+// GET /api/products/low-stock?threshold=10
 const getLowStock = async (req, res) => {
   try {
     const threshold = parseInt(req.query.threshold) || 10;
     const products  = await ProductModel.findLowStock(threshold);
-
-    res.json({
-      success:   true,
-      threshold,
-      count:     products.length,
-      products,
-    });
+    res.json({ success: true, threshold, count: products.length, products });
   } catch (err) {
     console.error('[productController.getLowStock]', err);
     res.status(500).json({ success: false, message: 'Failed to fetch low-stock products.' });
   }
 };
 
-// ─────────────────────────────────────────────────
 // GET /api/products/:id
-// ─────────────────────────────────────────────────
 const getProductById = async (req, res) => {
   try {
     const product = await ProductModel.findById(req.params.id);
-    if (!product) {
-      return res.status(404).json({ success: false, message: 'Product not found.' });
-    }
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
     res.json({ success: true, product });
   } catch (err) {
     console.error('[productController.getProductById]', err);
@@ -66,28 +44,20 @@ const getProductById = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────
 // POST /api/products
-// ─────────────────────────────────────────────────
 const createProduct = async (req, res) => {
   try {
-    const { name, category, price, quantity, unit } = req.body;
+    const { name, category, brand_id, price, discount = 0, quantity, unit } = req.body;
 
-    // Basic validation
-    if (!name || !category || price == null || quantity == null || !unit) {
-      return res.status(400).json({
-        success: false,
-        message: 'Fields required: name, category, price, quantity, unit.',
-      });
-    }
-
-    if (price < 0 || quantity < 0) {
+    if (!name || !category || price == null || quantity == null || !unit)
+      return res.status(400).json({ success: false, message: 'Fields required: name, category, price, quantity, unit.' });
+    if (price < 0 || quantity < 0)
       return res.status(400).json({ success: false, message: 'Price and quantity must be non-negative.' });
-    }
+    if (discount < 0 || discount > 100)
+      return res.status(400).json({ success: false, message: 'Discount must be between 0 and 100.' });
 
-    const id      = await ProductModel.create({ name, category, price, quantity, unit });
+    const id      = await ProductModel.create({ name, category, brand_id, price, discount, quantity, unit });
     const product = await ProductModel.findById(id);
-
     res.status(201).json({ success: true, message: 'Product created.', product });
   } catch (err) {
     console.error('[productController.createProduct]', err);
@@ -95,31 +65,25 @@ const createProduct = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────
 // PUT /api/products/:id
-// ─────────────────────────────────────────────────
 const updateProduct = async (req, res) => {
   try {
-    const { id }                                = req.params;
-    const { name, category, price, quantity, unit } = req.body;
+    const { id } = req.params;
+    const { name, category, brand_id, price, discount, quantity, unit } = req.body;
 
     const existing = await ProductModel.findById(id);
-    if (!existing) {
-      return res.status(404).json({ success: false, message: 'Product not found.' });
-    }
+    if (!existing) return res.status(404).json({ success: false, message: 'Product not found.' });
 
-    if (price != null && price < 0) {
-      return res.status(400).json({ success: false, message: 'Price must be non-negative.' });
-    }
-    if (quantity != null && quantity < 0) {
-      return res.status(400).json({ success: false, message: 'Quantity must be non-negative.' });
-    }
+    const newDiscount = discount != null ? parseFloat(discount) : existing.discount;
+    if (newDiscount < 0 || newDiscount > 100)
+      return res.status(400).json({ success: false, message: 'Discount must be between 0 and 100.' });
 
-    // Merge with existing values so partial updates are allowed
     await ProductModel.update(id, {
       name:     name     ?? existing.name,
       category: category ?? existing.category,
+      brand_id: brand_id !== undefined ? brand_id : existing.brand_id,
       price:    price    ?? existing.price,
+      discount: newDiscount,
       quantity: quantity ?? existing.quantity,
       unit:     unit     ?? existing.unit,
     });
@@ -132,34 +96,18 @@ const updateProduct = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────
 // DELETE /api/products/:id
-// ─────────────────────────────────────────────────
 const deleteProduct = async (req, res) => {
   try {
     const affected = await ProductModel.delete(req.params.id);
-    if (affected === 0) {
-      return res.status(404).json({ success: false, message: 'Product not found.' });
-    }
+    if (affected === 0) return res.status(404).json({ success: false, message: 'Product not found.' });
     res.json({ success: true, message: 'Product deleted.' });
   } catch (err) {
-    // MySQL error 1451 = FK constraint (product is referenced in a sale)
-    if (err.code === 'ER_ROW_IS_REFERENCED_2') {
-      return res.status(409).json({
-        success: false,
-        message: 'Cannot delete product — it is referenced in existing sales.',
-      });
-    }
+    if (err.code === 'ER_ROW_IS_REFERENCED_2')
+      return res.status(409).json({ success: false, message: 'Cannot delete — product is referenced in existing sales.' });
     console.error('[productController.deleteProduct]', err);
     res.status(500).json({ success: false, message: 'Failed to delete product.' });
   }
 };
 
-module.exports = {
-  getAllProducts,
-  getLowStock,
-  getProductById,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-};
+module.exports = { getAllProducts, getLowStock, getProductById, createProduct, updateProduct, deleteProduct };

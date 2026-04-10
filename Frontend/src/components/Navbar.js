@@ -6,10 +6,11 @@ const Navbar = () => {
   const { pathname } = useLocation();
 
   const links = [
-    { to: '/',            label: 'Dashboard' },
-    { to: '/products',    label: 'Products'  },
-    { to: '/sales',       label: 'Sales'     },
-    { to: '/billing',     label: 'New Bill'  },
+    { to: '/',            label: 'Dashboard'   },
+    { to: '/products',    label: 'Products'    },
+    { to: '/brands',      label: 'Brands'      },
+    { to: '/sales',       label: 'Sales'       },
+    { to: '/billing',     label: 'New Bill'    },
     { to: '/low-stock',   label: '⚠ Low Stock' },
   ];
 
